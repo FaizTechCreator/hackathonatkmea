@@ -1,0 +1,84 @@
+#include <ESP8266WiFi.h>
+#include <ThingESP.h>
+#include <Servo.h>
+
+ThingESP8266 thing("faizmuhammedms", "duodebugger", "faizandabhi");
+
+int LED1 = D3;  // First LED
+int LED2 = D2;  // Second LED
+Servo doorServo; // Servo motor for the door
+
+// Initial position of the door (0 degrees = open)
+int doorPosition = 0;
+
+void setup() {
+    Serial.begin(115200);
+    pinMode(LED1, OUTPUT);
+    pinMode(LED2, OUTPUT);
+    
+    // Attach the servo to pin D4
+    doorServo.attach(D4);
+    doorServo.write(doorPosition); // Set initial position to 0 degrees (open)
+    
+    // Connect to Wi-Fi
+    thing.SetWiFi("Abhijith", "abhijith");  // Update with your Wi-Fi credentials
+    thing.initDevice();  // Initialize the ThingESP device
+
+    // Wait for Wi-Fi connection
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    
+    // Print connection success message to the serial monitor
+    Serial.println("\nSuccessfully connected to the project");
+}
+
+String HandleResponse(String query) {
+    if (query == "led1 on") {
+        digitalWrite(LED1, HIGH);
+        return "Done: LED1 Turned ON";
+    } else if (query == "led1 off") {
+        digitalWrite(LED1, LOW);
+        return "Done: LED1 Turned OFF";
+    } else if (query == "led2 on") {
+        digitalWrite(LED2, HIGH);
+        return "Done: LED2 Turned ON";
+    } else if (query == "led2 off") {
+        digitalWrite(LED2, LOW);
+        return "Done: LED2 Turned OFF";
+    } else if (query == "on masterswitch") {
+        digitalWrite(LED1, HIGH);
+        digitalWrite(LED2, HIGH);
+        return "Master switch on";
+    } else if (query == "off masterswitch") {
+        digitalWrite(LED1, LOW);
+        digitalWrite(LED2, LOW);
+        return "Master switch off";
+    } else if (query == "led1 status") {
+        return digitalRead(LED1) ? "LED1 is ON" : "LED1 is OFF";
+    } else if (query == "led2 status") {
+        return digitalRead(LED2) ? "LED2 is ON" : "LED2 is OFF";
+    } else if (query == "door close") {
+        doorPosition = 180; // Move to 90 degrees (closed)
+        doorServo.write(doorPosition);
+        return "Door is closed";
+    } else if (query == "door open") {
+        doorPosition = 0; // Move to 0 degrees (open)
+        doorServo.write(doorPosition);
+        return "Door is opened";
+    } else if (query == "door status") {
+        return doorPosition == 0 ? "Door is open" : "Door is closed";
+    } else if (query == "home status") {
+        String led1Status = digitalRead(LED1) ? "LED1 is ON" : "LED1 is OFF";
+        String led2Status = digitalRead(LED2) ? "LED2 is ON" : "LED2 is OFF";
+        String doorStatus = doorPosition == 0 ? "Door is open" : "Door is closed";
+        return led1Status + ", " + led2Status + ", " + doorStatus;
+    } else {
+        return "Your query was invalid.";
+    }
+}
+
+void loop() {
+    thing.Handle();
+}
